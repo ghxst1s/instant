@@ -1,0 +1,165 @@
+<html>
+  <head>
+    <base href="/" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Instant Executor</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: #121212;
+        color: #e0e0e0;
+        font-family: 'Roboto', Arial, sans-serif;
+        line-height: 1.6;
+      }
+
+      .container {
+        padding: 20px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 2px solid #333;
+        background: linear-gradient(45deg, #1f1f1f, #292929);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        border-radius: 8px;
+      }
+
+      .title {
+        font-size: 28px;
+        font-weight: bold;
+        background: linear-gradient(90deg, #ff0000, #ff3939);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0 2px 5px rgba(255, 255, 255, 0.2);
+      }
+
+      #editor {
+        width: 100%;
+        height: 65vh;
+        margin: 20px 0;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #444;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        background: #1e1e1e;
+      }
+
+      .execute-btn {
+        display: inline-block;
+        background: linear-gradient(90deg, #ff0000, #a50000);
+        color: #fff;
+        border: none;
+        padding: 15px 30px;
+        font-size: 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 3px 6px rgba(235, 9, 9, 0.3);
+        
+      }
+
+      .execute-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(148, 0, 0, 0.5);
+      }
+
+      .execute-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 3px 6px rgba(146, 0, 0, 0.3);
+      }
+
+      .credits {
+        margin-top: 30px;
+        text-align: center;
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      .credits a {
+        color: #4ecdc4;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .credits a:hover {
+        color: #00ffcc;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/loader.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="title">Instant Executor</div>
+        <button class="execute-btn" onclick="executeScript()">Run Script</button>
+      </div>
+
+      <div id="editor"></div>
+      
+    </div>
+
+    <script>
+      require.config({
+        paths: {
+          vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs'
+        }
+      });
+
+      window.MonacoEnvironment = {
+        getWorkerUrl: function () {
+          return `data:text/javascript;charset=utf-8,${encodeURIComponent(`
+            self.MonacoEnvironment = {
+              baseUrl: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/'
+            };
+            importScripts('https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs/base/worker/workerMain.js');
+          `)}`;
+        }
+      };
+
+      require(['vs/editor/editor.main'], function () {
+        let editor = monaco.editor.create(document.getElementById('editor'), {
+          value: 'print("Working!?")',
+          language: 'lua',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          minimap: {
+            enabled: false
+          },
+          fontSize: 14,
+        });
+
+        window.executeScript = function () {
+          const editorContent = editor.getValue();
+
+          console.log("Editor content:", editorContent);
+
+          try {
+            fetch('http://localhost:5000/message', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content: editorContent })
+            })
+              .then(response => response.json())
+              .then(data => {
+                console.log("Server responded:", data);
+              })
+              .catch(error => {
+                console.error("Error:", error);
+              });
+          } catch (e) {
+            console.error("Error while sending JSON:", e);
+            alert("There was an issue sending the JSON data.");
+          }
+        };
+      });
+    </script>
+  </body>
+</html>
